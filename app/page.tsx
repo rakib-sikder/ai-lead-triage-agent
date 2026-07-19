@@ -1,40 +1,38 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import Papa from "papaparse";
+import { Inbox } from "lucide-react";
+import { toast } from "sonner";
+
 import { sampleLeads } from "@/lib/sample-leads";
 import type { Classification, DraftReply, Lead, TriageEvent } from "@/lib/types";
-
-type Status = "queued" | "classifying" | "drafting" | "done" | "skipped" | "error";
-
-interface LeadRow extends Lead {
-  status: Status;
-  classification?: Classification;
-  draft?: DraftReply;
-  error?: string;
-}
-
-const CATEGORY_STYLE: Record<string, string> = {
-  hot: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
-  warm: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  cold: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  spam: "bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
-};
-
-const STEP_LABEL: Record<Status, string> = {
-  queued: "Queued",
-  classifying: "Classifying…",
-  drafting: "Drafting reply…",
-  done: "Done",
-  skipped: "Skipped (low priority)",
-  error: "Error",
-};
+import { AmbientBackground } from "@/components/ambient-background";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LeadForm } from "@/components/lead-form";
+import { QueueToolbar } from "@/components/queue-toolbar";
+import { LeadCard, type LeadRow } from "@/components/lead-card";
 
 export default function Home() {
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [running, setRunning] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.from("[data-reveal='logo']", { opacity: 0, scale: 0.5, duration: 0.5, ease: "back.out(2.2)" })
+        .from("[data-reveal='title']", { opacity: 0, x: -10, duration: 0.4 }, "<0.05")
+        .from("[data-reveal='form']", { opacity: 0, y: 16, duration: 0.5 }, "-=0.15")
+        .from("[data-reveal='toolbar']", { opacity: 0, y: 12, duration: 0.4 }, "-=0.25")
+        .from("[data-reveal='list']", { opacity: 0, y: 12, duration: 0.45 }, "-=0.2");
+    },
+    { scope: rootRef }
+  );
 
   const addLead = useCallback((lead: Omit<Lead, "id">) => {
     setLeads((prev) => [...prev, { ...lead, id: crypto.randomUUID(), status: "queued" }]);
@@ -79,7 +77,7 @@ export default function Home() {
 
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({ error: "Something went wrong" }));
-        alert(data.error ?? "Something went wrong");
+        toast.error(data.error ?? "Something went wrong");
         setRunning(false);
         return;
       }
@@ -140,114 +138,59 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-5">
+    <div ref={rootRef} className="relative min-h-screen text-foreground">
+      <AmbientBackground />
+
+      <header className="border-b border-border bg-background/70 backdrop-blur-xl px-6 py-5 sticky top-0 z-10">
         <div className="mx-auto max-w-5xl flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold shrink-0">
-            LP
+          <div data-reveal="logo" className="relative h-9 w-9 shrink-0">
+            <div className="absolute inset-0 rounded-lg bg-primary/50 blur-md animate-pulse" />
+            <div className="relative h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+              LP
+            </div>
           </div>
-          <div>
+          <div data-reveal="title" className="flex-1">
             <h1 className="text-lg font-semibold leading-tight">LeadPilot</h1>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted-foreground">
               Classifies inbound leads, scores intent, and drafts replies — skipping cold/spam to save cost.
             </p>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl p-6 space-y-8">
-        <section className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 space-y-4">
-          <div className="flex flex-wrap items-center gap-2 justify-between">
-            <h2 className="font-medium">Add leads</h2>
-            <div className="flex gap-2">
-              <button onClick={loadSample} className="text-sm rounded-full border border-neutral-300 dark:border-neutral-700 px-3.5 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                Load sample leads
-              </button>
-              <button onClick={() => fileInputRef.current?.click()} className="text-sm rounded-full border border-neutral-300 dark:border-neutral-700 px-3.5 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                Upload CSV
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleCsv(e.target.files[0])}
-              />
-            </div>
-          </div>
+        <div data-reveal="form">
+          <LeadForm
+            form={form}
+            fileInputRef={fileInputRef}
+            onFormChange={setForm}
+            onSubmit={handleAddForm}
+            onLoadSample={loadSample}
+            onCsv={handleCsv}
+          />
+        </div>
 
-          <form onSubmit={handleAddForm} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" />
-            <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" />
-            <input placeholder="Company (optional)" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" />
-            <textarea placeholder="Message" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" rows={2} />
-            <button type="submit" className="rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-sm font-medium px-5 py-2 sm:col-span-2 sm:w-fit">
-              Add lead
-            </button>
-          </form>
-        </section>
+        <div data-reveal="toolbar">
+          <QueueToolbar
+            count={leads.length}
+            running={running}
+            canRun={leads.some((l) => l.status === "queued" || l.status === "error")}
+            canExport={leads.some((l) => !!l.classification)}
+            onRun={runAgent}
+            onExport={exportCsv}
+          />
+        </div>
 
-        <section className="flex items-center justify-between">
-          <h2 className="font-medium">Queue ({leads.length})</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={runAgent}
-              disabled={running || leads.every((l) => l.status !== "queued" && l.status !== "error")}
-              className="rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-sm font-medium px-5 py-2 disabled:opacity-40 disabled:hover:bg-indigo-600"
-            >
-              {running ? "Running agent…" : "Run agent"}
-            </button>
-            <button
-              onClick={exportCsv}
-              disabled={leads.every((l) => !l.classification)}
-              className="rounded-full border border-neutral-300 dark:border-neutral-700 text-sm font-medium px-5 py-2 disabled:opacity-40 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            >
-              Export CSV
-            </button>
-          </div>
-        </section>
-
-        <section className="space-y-3">
+        <section data-reveal="list" className="space-y-3">
           {leads.length === 0 && (
-            <div className="text-center py-14 text-neutral-400">
-              <div className="text-3xl mb-2">📥</div>
+            <div className="text-center py-14 text-muted-foreground">
+              <Inbox className="mx-auto mb-2 size-8 opacity-50" />
               <p className="text-sm">No leads yet — add one above or load the sample set.</p>
             </div>
           )}
           {leads.map((lead) => (
-            <div key={lead.id} className="rounded-2xl border border-neutral-200 dark:border-neutral-800 p-5 bg-white dark:bg-neutral-900 hover:border-indigo-300 dark:hover:border-indigo-800 transition-colors">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <p className="font-medium">{lead.name} <span className="text-neutral-400 font-normal">— {lead.email}</span></p>
-                  {lead.company && <p className="text-xs text-neutral-500">{lead.company}</p>}
-                  <p className="text-sm mt-1 text-neutral-600 dark:text-neutral-300">{lead.message}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {lead.classification && (
-                    <span className={`text-xs font-medium rounded-full px-2.5 py-1 ${CATEGORY_STYLE[lead.classification.category]}`}>
-                      {lead.classification.category.toUpperCase()} · {lead.classification.qualityScore}/10
-                    </span>
-                  )}
-                  <span className="text-xs text-neutral-400">{STEP_LABEL[lead.status]}</span>
-                </div>
-              </div>
-
-              {lead.classification && (
-                <div className="mt-3 text-sm space-y-1 border-t border-neutral-100 dark:border-neutral-800 pt-3">
-                  <p><span className="text-neutral-400">Reasoning:</span> {lead.classification.reasoning}</p>
-                  <p><span className="text-neutral-400">Suggested action:</span> {lead.classification.suggestedAction}</p>
-                </div>
-              )}
-
-              {lead.draft && (
-                <div className="mt-3 rounded-lg bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 p-3 text-sm">
-                  <p className="font-medium">Subject: {lead.draft.subject}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-neutral-600 dark:text-neutral-300">{lead.draft.body}</p>
-                </div>
-              )}
-
-              {lead.error && <p className="mt-2 text-sm text-red-600">⚠️ {lead.error}</p>}
-            </div>
+            <LeadCard key={lead.id} lead={lead} />
           ))}
         </section>
       </main>
