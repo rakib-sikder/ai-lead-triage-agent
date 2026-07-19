@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeadPilot — AI Lead Triage Agent
 
-## Getting Started
+An agentic workflow that classifies inbound leads, scores intent, and drafts a personalized
+reply — automatically skipping cold/spam leads so you're not paying an LLM to write emails
+nobody needs.
 
-First, run the development server:
+## How it works
+
+Each lead goes through a two-step, conditionally-branching pipeline:
+
+1. **Classify** — Claude scores the lead (`hot` / `warm` / `cold` / `spam`, 1-10 quality,
+   reasoning, suggested next action) via a forced tool call, so the output is always valid
+   structured JSON, never free-text to parse.
+2. **Draft (conditional)** — only `hot` and `warm` leads get a second call that drafts a
+   personalized reply referencing their actual message. `cold`/`spam` leads are skipped —
+   this is the cost-aware part of the "agent": it decides whether the next step is worth
+   running rather than always doing both steps for every lead.
+
+Progress streams to the UI in real time (NDJSON) as each lead moves through
+classifying → drafting → done, so you can watch the agent work lead-by-lead.
+
+## Stack
+
+Next.js 16 (App Router) · TypeScript · Tailwind CSS · `@anthropic-ai/sdk` (tool-use
+forced structured output) · `papaparse` (CSV import/export)
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # add your ANTHROPIC_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000), click **"Load sample leads"** (or add
+your own / upload a CSV with `name,email,company,message` columns), then **"Run agent"**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Notes for production use
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Leads are processed sequentially to keep the on-screen trace readable and avoid bursty
+  rate-limit spikes; batch/parallelize with a concurrency limit if you need higher throughput.
+- Nothing is persisted server-side — results live in the browser tab and export to CSV.
+  Add a database if you need a durable inbox/CRM view.
+- Add auth before exposing this publicly, since anyone with the URL can spend your API credits.
