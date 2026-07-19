@@ -11,6 +11,7 @@ import { sampleLeads } from "@/lib/sample-leads";
 import type { Classification, DraftReply, Lead, TriageEvent } from "@/lib/types";
 import { AmbientBackground } from "@/components/ambient-background";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LogoMark } from "@/components/logo-mark";
 import { LeadForm } from "@/components/lead-form";
 import { QueueToolbar } from "@/components/queue-toolbar";
 import { LeadCard, type LeadRow } from "@/components/lead-card";
@@ -143,12 +144,7 @@ export default function Home() {
 
       <header className="border-b border-border bg-background/70 backdrop-blur-xl px-6 py-5 sticky top-0 z-10">
         <div className="mx-auto max-w-5xl flex items-center gap-3">
-          <div data-reveal="logo" className="relative h-9 w-9 shrink-0">
-            <div className="absolute inset-0 rounded-lg bg-primary/50 blur-md animate-pulse" />
-            <div className="relative h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-              LP
-            </div>
-          </div>
+          <LogoMark />
           <div data-reveal="title" className="flex-1">
             <h1 className="text-lg font-semibold leading-tight">LeadPilot</h1>
             <p className="text-sm text-muted-foreground">
