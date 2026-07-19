@@ -141,22 +141,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
-        <h1 className="text-lg font-semibold">LeadPilot</h1>
-        <p className="text-sm text-neutral-500">
-          AI agent that classifies inbound leads, scores intent, and drafts replies automatically — skipping cold/spam leads to save cost.
-        </p>
+      <header className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-5">
+        <div className="mx-auto max-w-5xl flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold shrink-0">
+            LP
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold leading-tight">LeadPilot</h1>
+            <p className="text-sm text-neutral-500">
+              Classifies inbound leads, scores intent, and drafts replies — skipping cold/spam to save cost.
+            </p>
+          </div>
+        </div>
       </header>
 
-      <main className="mx-auto max-w-5xl p-6 space-y-6">
-        <section className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 space-y-4">
+      <main className="mx-auto max-w-5xl p-6 space-y-8">
+        <section className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <h2 className="font-medium">Add leads</h2>
             <div className="flex gap-2">
-              <button onClick={loadSample} className="text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-900">
+              <button onClick={loadSample} className="text-sm rounded-full border border-neutral-300 dark:border-neutral-700 px-3.5 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                 Load sample leads
               </button>
-              <button onClick={() => fileInputRef.current?.click()} className="text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-900">
+              <button onClick={() => fileInputRef.current?.click()} className="text-sm rounded-full border border-neutral-300 dark:border-neutral-700 px-3.5 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                 Upload CSV
               </button>
               <input
@@ -170,11 +177,11 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleAddForm} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm" />
-            <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm" />
-            <input placeholder="Company (optional)" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm sm:col-span-2" />
-            <textarea placeholder="Message" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm sm:col-span-2" rows={2} />
-            <button type="submit" className="rounded-lg bg-blue-600 text-white text-sm px-4 py-2 sm:col-span-2 sm:w-fit">
+            <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" />
+            <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" />
+            <input placeholder="Company (optional)" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" />
+            <textarea placeholder="Message" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm sm:col-span-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400" rows={2} />
+            <button type="submit" className="rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-sm font-medium px-5 py-2 sm:col-span-2 sm:w-fit">
               Add lead
             </button>
           </form>
@@ -186,14 +193,14 @@ export default function Home() {
             <button
               onClick={runAgent}
               disabled={running || leads.every((l) => l.status !== "queued" && l.status !== "error")}
-              className="rounded-lg bg-neutral-900 dark:bg-white dark:text-neutral-900 text-white text-sm px-4 py-2 disabled:opacity-40"
+              className="rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-sm font-medium px-5 py-2 disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
               {running ? "Running agent…" : "Run agent"}
             </button>
             <button
               onClick={exportCsv}
               disabled={leads.every((l) => !l.classification)}
-              className="rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm px-4 py-2 disabled:opacity-40"
+              className="rounded-full border border-neutral-300 dark:border-neutral-700 text-sm font-medium px-5 py-2 disabled:opacity-40 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             >
               Export CSV
             </button>
@@ -202,10 +209,13 @@ export default function Home() {
 
         <section className="space-y-3">
           {leads.length === 0 && (
-            <p className="text-sm text-neutral-400 text-center py-10">No leads yet — add one above or load the sample set.</p>
+            <div className="text-center py-14 text-neutral-400">
+              <div className="text-3xl mb-2">📥</div>
+              <p className="text-sm">No leads yet — add one above or load the sample set.</p>
+            </div>
           )}
           {leads.map((lead) => (
-            <div key={lead.id} className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-4 bg-white dark:bg-neutral-900">
+            <div key={lead.id} className="rounded-2xl border border-neutral-200 dark:border-neutral-800 p-5 bg-white dark:bg-neutral-900 hover:border-indigo-300 dark:hover:border-indigo-800 transition-colors">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <p className="font-medium">{lead.name} <span className="text-neutral-400 font-normal">— {lead.email}</span></p>
