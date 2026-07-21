@@ -8,8 +8,8 @@ nobody needs.
 
 Each lead goes through a two-step, conditionally-branching pipeline:
 
-1. **Classify** — Claude scores the lead (`hot` / `warm` / `cold` / `spam`, 1-10 quality,
-   reasoning, suggested next action) via a forced tool call, so the output is always valid
+1. **Classify** — Gemini scores the lead (`hot` / `warm` / `cold` / `spam`, 1-10 quality,
+   reasoning, suggested next action) via a forced function call, so the output is always valid
    structured JSON, never free-text to parse.
 2. **Draft (conditional)** — only `hot` and `warm` leads get a second call that drafts a
    personalized reply referencing their actual message. `cold`/`spam` leads are skipped —
@@ -21,14 +21,14 @@ classifying → drafting → done, so you can watch the agent work lead-by-lead.
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS · `@anthropic-ai/sdk` (tool-use
-forced structured output) · `papaparse` (CSV import/export)
+Next.js 16 (App Router) · TypeScript · Tailwind CSS · `@google/genai` (forced function-call
+structured output) · `papaparse` (CSV import/export)
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local   # add your ANTHROPIC_API_KEY
+cp .env.example .env.local   # add your GEMINI_API_KEY
 npm run dev
 ```
 

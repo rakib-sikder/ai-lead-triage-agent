@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return new Response(
       JSON.stringify({
-        error: "ANTHROPIC_API_KEY is not configured on the server. Add it to .env.local and restart the dev server.",
+        error: "GEMINI_API_KEY is not configured on the server. Add it to .env.local and restart the dev server.",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );

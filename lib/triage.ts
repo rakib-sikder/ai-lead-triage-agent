@@ -1,19 +1,19 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, FunctionCallingConfigMode, type FunctionDeclaration } from "@google/genai";
 import type { Classification, DraftReply, Lead } from "./types";
 
-const MODEL = "claude-sonnet-4-5";
+const MODEL = "gemini-3.1-flash-lite";
 
-function getClient(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY is not configured on the server. Add it to .env.local and restart.");
+function getClient(): GoogleGenAI {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured on the server. Add it to .env.local and restart.");
   }
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 }
 
-const classifyTool: Anthropic.Tool = {
+const classifyTool: FunctionDeclaration = {
   name: "submit_classification",
   description: "Submit the triage classification for an inbound lead.",
-  input_schema: {
+  parametersJsonSchema: {
     type: "object",
     properties: {
       category: {
@@ -33,10 +33,10 @@ const classifyTool: Anthropic.Tool = {
   },
 };
 
-const draftTool: Anthropic.Tool = {
+const draftTool: FunctionDeclaration = {
   name: "submit_draft_reply",
   description: "Submit a personalized email reply draft for this lead.",
-  input_schema: {
+  parametersJsonSchema: {
     type: "object",
     properties: {
       subject: { type: "string" },
@@ -46,44 +46,44 @@ const draftTool: Anthropic.Tool = {
   },
 };
 
-function extractToolInput<T>(message: Anthropic.Message, toolName: string): T {
-  const block = message.content.find(
-    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === toolName
-  );
-  if (!block) throw new Error(`Model did not call ${toolName}`);
-  return block.input as T;
+function extractFunctionArgs<T>(response: Awaited<ReturnType<GoogleGenAI["models"]["generateContent"]>>, toolName: string): T {
+  const call = (response.functionCalls ?? []).find((c) => c.name === toolName);
+  if (!call) throw new Error(`Model did not call ${toolName}`);
+  return call.args as T;
 }
 
 export async function classifyLead(lead: Lead): Promise<Classification> {
   const client = getClient();
-  const message = await client.messages.create({
+  const response = await client.models.generateContent({
     model: MODEL,
-    max_tokens: 512,
-    tools: [classifyTool],
-    tool_choice: { type: "tool", name: "submit_classification" },
-    messages: [
-      {
-        role: "user",
-        content: `Classify this inbound lead for a freelance software agency.\n\nName: ${lead.name}\nEmail: ${lead.email}\nCompany: ${lead.company ?? "unknown"}\nMessage: ${lead.message}`,
+    contents: `Classify this inbound lead for a freelance software agency.\n\nName: ${lead.name}\nEmail: ${lead.email}\nCompany: ${lead.company ?? "unknown"}\nMessage: ${lead.message}`,
+    config: {
+      tools: [{ functionDeclarations: [classifyTool] }],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: FunctionCallingConfigMode.ANY,
+          allowedFunctionNames: ["submit_classification"],
+        },
       },
-    ],
+    },
   });
-  return extractToolInput<Classification>(message, "submit_classification");
+  return extractFunctionArgs<Classification>(response, "submit_classification");
 }
 
 export async function draftReply(lead: Lead, classification: Classification): Promise<DraftReply> {
   const client = getClient();
-  const message = await client.messages.create({
+  const response = await client.models.generateContent({
     model: MODEL,
-    max_tokens: 512,
-    tools: [draftTool],
-    tool_choice: { type: "tool", name: "submit_draft_reply" },
-    messages: [
-      {
-        role: "user",
-        content: `Write a short, warm, specific reply to this lead. Reference their actual message — do not sound templated.\n\nName: ${lead.name}\nCompany: ${lead.company ?? "unknown"}\nMessage: ${lead.message}\n\nTriage notes: ${classification.reasoning} (category: ${classification.category})`,
+    contents: `Write a short, warm, specific reply to this lead. Reference their actual message — do not sound templated.\n\nName: ${lead.name}\nCompany: ${lead.company ?? "unknown"}\nMessage: ${lead.message}\n\nTriage notes: ${classification.reasoning} (category: ${classification.category})`,
+    config: {
+      tools: [{ functionDeclarations: [draftTool] }],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: FunctionCallingConfigMode.ANY,
+          allowedFunctionNames: ["submit_draft_reply"],
+        },
       },
-    ],
+    },
   });
-  return extractToolInput<DraftReply>(message, "submit_draft_reply");
+  return extractFunctionArgs<DraftReply>(response, "submit_draft_reply");
 }
