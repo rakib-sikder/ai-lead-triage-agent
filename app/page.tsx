@@ -13,12 +13,15 @@ import { AmbientBackground } from "@/components/ambient-background";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoMark } from "@/components/logo-mark";
 import { LeadForm } from "@/components/lead-form";
-import { QueueToolbar } from "@/components/queue-toolbar";
+import { QueueToolbar, type CategoryFilter } from "@/components/queue-toolbar";
 import { LeadCard, type LeadRow } from "@/components/lead-card";
+import { TriageStats } from "@/components/triage-stats";
 
 export default function Home() {
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [running, setRunning] = useState(false);
+  const [filter, setFilter] = useState<CategoryFilter>("all");
+  const [sortByScore, setSortByScore] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -37,6 +40,15 @@ export default function Home() {
 
   const addLead = useCallback((lead: Omit<Lead, "id">) => {
     setLeads((prev) => [...prev, { ...lead, id: crypto.randomUUID(), status: "queued" }]);
+  }, []);
+
+  const removeLead = useCallback((id: string) => {
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setLeads([]);
+    setFilter("all");
   }, []);
 
   const handleAddForm = (e: React.FormEvent) => {
@@ -116,6 +128,14 @@ export default function Home() {
     }
   }, [leads, running]);
 
+  const visibleLeads = leads
+    .filter((l) => filter === "all" || l.classification?.category === filter)
+    .sort((a, b) =>
+      sortByScore
+        ? (b.classification?.qualityScore ?? -1) - (a.classification?.qualityScore ?? -1)
+        : 0
+    );
+
   const exportCsv = () => {
     const rows = leads.map((l) => ({
       name: l.name,
@@ -167,15 +187,22 @@ export default function Home() {
           />
         </div>
 
-        <div data-reveal="toolbar">
+        <div data-reveal="toolbar" className="space-y-4">
           <QueueToolbar
             count={leads.length}
             running={running}
             canRun={leads.some((l) => l.status === "queued" || l.status === "error")}
             canExport={leads.some((l) => !!l.classification)}
+            hasClassified={leads.some((l) => !!l.classification)}
+            filter={filter}
+            sortByScore={sortByScore}
             onRun={runAgent}
             onExport={exportCsv}
+            onFilterChange={setFilter}
+            onSortToggle={() => setSortByScore((s) => !s)}
+            onClearAll={clearAll}
           />
+          <TriageStats leads={leads} />
         </div>
 
         <section data-reveal="list" className="space-y-3">
@@ -185,8 +212,13 @@ export default function Home() {
               <p className="text-sm">No leads yet — add one above or load the sample set.</p>
             </div>
           )}
-          {leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} />
+          {visibleLeads.length === 0 && leads.length > 0 && (
+            <p className="text-center py-10 text-sm text-muted-foreground">
+              No {filter} leads in the queue.
+            </p>
+          )}
+          {visibleLeads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} onRemove={removeLead} />
           ))}
         </section>
       </main>
